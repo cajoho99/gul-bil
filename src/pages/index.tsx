@@ -3,6 +3,46 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import Head from "next/head";
 import { trpc } from "../utils/trpc";
 
+const PlayerInfo: React.FC<{ userId: string }> = ({ userId }) => {
+  const user = trpc.useQuery(["user.get", { id: userId }]);
+  return (
+    <div>
+      <p>{user.data?.name}</p>
+    </div>
+  );
+};
+
+const GameList = () => {
+  const games = trpc.useQuery(["game.getMine"]);
+  console.log(games.data);
+  if (games.isLoading) {
+    return <div>loading...</div>;
+  }
+  return (
+    <div>
+      {games.data?.map((game) => (
+        <div key={game.id} className="border">
+          <div>{game.id}</div>
+          <div>
+            {game.players.map((p) => {
+              if (!p.userId) {
+                return null;
+              }
+
+              return (
+                <div key={p.id}>
+                  <p>Players:</p>
+                  <PlayerInfo userId={p.userId} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const HomeContents = () => {
   const { data } = useSession();
   const createGameMutation = trpc.useMutation(["game.create"]);
@@ -16,6 +56,8 @@ const HomeContents = () => {
       <div>Hej {data.user?.name}!</div>
       <button onClick={() => createGameMutation.mutate()}>Create Game</button>
       <button onClick={() => signOut()}>Logga ut</button>
+
+      <GameList />
     </>
   );
 };

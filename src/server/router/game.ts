@@ -12,4 +12,21 @@ export const gameRouter = createProtectedRouter().mutation("create", {
     });
     return { success: true, game };
   },
+}).query("getMine", {
+  async resolve({ctx}) { 
+    const games = ctx.prisma.game.findMany({
+      where: {
+        players: {
+          every: {
+            userId: ctx.session.user.id
+          }
+        }
+      },
+      include: {
+        players: true
+      }
+    });
+
+    return games;
+  }
 });
