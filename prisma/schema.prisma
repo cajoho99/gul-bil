@@ -46,6 +46,7 @@ model User {
     accounts      Account[]
     sessions      Session[]
     player        GamePlayer[]
+    Invite        Invite[]
 }
 
 model VerificationToken {
@@ -68,6 +69,7 @@ model GamePlayer {
 model Game {
     id      String       @id @default(cuid())
     players GamePlayer[]
+    Invite  Invite[]
 }
 
 model Point {
@@ -75,4 +77,13 @@ model Point {
     time         DateTime
     player       GamePlayer? @relation(fields: [gamePlayerId], references: [id])
     gamePlayerId String?
+}
+
+model Invite {
+    id     String @id @default(cuid())
+    user   User   @relation(fields: [userId], references: [id])
+    userId String
+    game   Game   @relation(fields: [gameId], references: [id])
+    gameId String
+    status String
 }
