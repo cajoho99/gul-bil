@@ -1,29 +1,60 @@
 import type { NextPage } from "next";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Head from "next/head";
+import { useState } from "react";
 import { trpc } from "../utils/trpc";
+
+const CreateGame = () => {
+  const [email, setEmail] = useState("");
+  const createGameMutation = trpc.useMutation(["game.create"]);
+
+  return (
+    <div>
+      <input
+        type="email"
+        name="invite"
+        id="invite"
+        value={email}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          console.log(email);
+        }}
+      />
+      <button
+        onClick={() => {
+          createGameMutation.mutate({ email });
+          console.log(email);
+        }}
+      >
+        Create Game
+      </button>
+    </div>
+  );
+};
 
 const PlayerInfo: React.FC<{ userId: string }> = ({ userId }) => {
   const user = trpc.useQuery(["user.get", { id: userId }]);
   return (
     <div>
       <p>{user.data?.name}</p>
+      <p>{user.data?.email}</p>
     </div>
   );
 };
 
 const GameList = () => {
   const games = trpc.useQuery(["game.getMine"]);
-  console.log(games.data);
   if (games.isLoading) {
     return <div>loading...</div>;
   }
+
   return (
     <div>
       {games.data?.map((game) => (
         <div key={game.id} className="border">
           <div>{game.id}</div>
           <div>
+            <p>Players:</p>
             {game.players.map((p) => {
               if (!p.userId) {
                 return null;
@@ -31,7 +62,6 @@ const GameList = () => {
 
               return (
                 <div key={p.id}>
-                  <p>Players:</p>
                   <PlayerInfo userId={p.userId} />
                 </div>
               );
@@ -45,7 +75,6 @@ const GameList = () => {
 
 const HomeContents = () => {
   const { data } = useSession();
-  const createGameMutation = trpc.useMutation(["game.create"]);
 
   if (!data) {
     return <button onClick={() => signIn()}>Logga in</button>;
@@ -54,8 +83,8 @@ const HomeContents = () => {
   return (
     <>
       <div>Hej {data.user?.name}!</div>
-      <button onClick={() => createGameMutation.mutate()}>Create Game</button>
       <button onClick={() => signOut()}>Logga ut</button>
+      <CreateGame />
 
       <GameList />
     </>
