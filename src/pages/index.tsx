@@ -1,7 +1,8 @@
+import { GamePlayer } from "@prisma/client";
 import type { NextPage } from "next";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Head from "next/head";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { trpc } from "../utils/trpc";
 
 const CreateGame = () => {
@@ -32,44 +33,129 @@ const CreateGame = () => {
   );
 };
 
-const PlayerInfo: React.FC<{ userId: string }> = ({ userId }) => {
-  const user = trpc.useQuery(["user.get", { id: userId }]);
+const getPlayerName = (player: GamePlayer) => {
+  const user = trpc.useQuery(["user.get", { id: player.userId! }]);
+
+  if (!user.data) {
+    return null;
+  }
+
+  return user.data?.name;
+};
+
+const GameInfo: React.FC<{ players: GamePlayer[] }> = ({ players }) => {
+  if (!players[0] || !players[1]) {
+    return null;
+  }
+
   return (
-    <div>
-      <p>{user.data?.name}</p>
-      <p>{user.data?.email}</p>
+    <span className="p-4">
+      <span>{getPlayerName(players[0])}</span> vs{" "}
+      <span>{getPlayerName(players[1])}</span>
+    </span>
+  );
+};
+
+const GamePlayerScoreButton: React.FC<{ player: GamePlayer }> = ({
+  player,
+}) => {
+  const utils = trpc.useContext();
+  const score = trpc.useQuery(["game.getPlayerScore", { playerId: player.id }]);
+  const name = getPlayerName(player);
+  const giveScore = trpc.useMutation(["game.givePointTo"], {
+    onMutate: async ({ playerId }) => {
+      await utils.cancelQuery(["game.getPlayerScore"]);
+      const score = utils.getQueryData(["game.getPlayerScore"]);
+      if (!score) {
+        return;
+      }
+      utils.setQueryData(["game.getPlayerScore"], score + 1);
+    },
+
+    onSettled: () => {
+      utils.invalidateQueries("game.getPlayerScore");
+    },
+  });
+
+  if (score.isLoading) {
+    return <div>loading...</div>;
+  }
+
+  return (
+    <div
+      onClick={() => giveScore.mutate({ playerId: player.id })}
+      className="border flex flex-col hover:cursor-pointer11"
+    >
+      <div>{name}</div>
+      <div>{score.data}</div>
+    </div>
+  );
+};
+
+const GameView: React.FC<{ gameId: string }> = ({ gameId }) => {
+  const game = trpc.useQuery(["game.getGameInfo", { gameId }]);
+
+  if (game.isLoading) {
+    return <div>isLoading...</div>;
+  }
+
+  if (!game.data) {
+    return <div>Something went wrong</div>;
+  }
+
+  if (!game.data?.players || !game.data.players[0] || !game.data.players[1]) {
+    return null;
+  }
+
+  return (
+    <div className="w-screen flex flex-col md:flex-row">
+      <GamePlayerScoreButton player={game.data.players[0]} />
+      <span>vs</span>
+      <GamePlayerScoreButton player={game.data.players[1]} />
     </div>
   );
 };
 
 const GameList = () => {
   const games = trpc.useQuery(["game.getMine"]);
+  const [selected, setSelected] = useState("");
+
   if (games.isLoading) {
     return <div>loading...</div>;
   }
 
-  return (
-    <div>
-      {games.data?.map((game) => (
-        <div key={game.id} className="border">
-          <div>{game.id}</div>
-          <div>
-            <p>Players:</p>
-            {game.players.map((p) => {
-              if (!p.userId) {
-                return null;
-              }
+  if (!games.data || !games.data[0]) {
+    return null;
+  }
 
-              return (
-                <div key={p.id}>
-                  <PlayerInfo userId={p.userId} />
-                </div>
-              );
-            })}
+  if (selected === "") {
+    setSelected(games.data[0].id);
+  }
+
+  return (
+    <>
+      <p>current game: {selected}</p>
+
+      <form>
+        {games.data?.map((game) => (
+          <div key={game.id} className="border">
+            <input
+              type="radio"
+              name="selectedGame"
+              value={game.id}
+              id={game.id}
+              checked={selected === game.id}
+              onChange={(e) => setSelected(e.target.value)}
+            />
+            <label htmlFor={game.id} className="p-5">
+              <GameInfo players={game.players} />
+            </label>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </form>
+
+      <GameView gameId={selected} />
+    </>
   );
 };
 

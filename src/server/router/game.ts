@@ -54,4 +54,57 @@ export const gameRouter = createProtectedRouter()
 
       return games;
     },
+  })
+  .query("getGameInfo", {
+    input: z.object({ gameId: z.string() }),
+    async resolve({ input, ctx }) {
+      const game = ctx.prisma.game.findFirst({
+        where: {
+          players: {
+            some: {
+              userId: ctx.session.user.id,
+            },
+          },
+          AND: {
+            id: input.gameId,
+          },
+        },
+        include: {
+          players: true,
+        },
+      });
+
+      return game;
+    },
+  })
+  .query("getPlayerScore", {
+    input: z.object({ playerId: z.string() }),
+    async resolve({ input, ctx }) {
+      const gamePlayer = await ctx.prisma.gamePlayer.findFirst({
+        where: {
+          id: input.playerId,
+        },
+        include: {
+          points: true,
+        },
+      });
+
+      if (!gamePlayer) {
+        return 0;
+      }
+
+      return gamePlayer.points.length;
+    },
+  })
+  .mutation("givePointTo", {
+    input: z.object({ playerId: z.string() }),
+    async resolve({ input, ctx }) {
+      const point = await ctx.prisma.point.create({
+        data: {
+          gamePlayerId: input.playerId,
+        },
+      });
+
+      return point;
+    },
   });

@@ -74,7 +74,7 @@ model Game {
 
 model Point {
     id           String      @id @default(cuid())
-    time         DateTime
+    time         DateTime    @default(now())
     player       GamePlayer? @relation(fields: [gamePlayerId], references: [id])
     gamePlayerId String?
 }
