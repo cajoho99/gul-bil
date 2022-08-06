@@ -5,34 +5,6 @@ import Head from "next/head";
 import { useContext, useState } from "react";
 import { trpc } from "../utils/trpc";
 
-const CreateGame = () => {
-  const [email, setEmail] = useState("");
-  const createGameMutation = trpc.useMutation(["game.create"]);
-
-  return (
-    <div>
-      <input
-        type="email"
-        name="invite"
-        id="invite"
-        value={email}
-        onChange={(e) => {
-          setEmail(e.target.value);
-          console.log(email);
-        }}
-      />
-      <button
-        onClick={() => {
-          createGameMutation.mutate({ email });
-          console.log(email);
-        }}
-      >
-        Create Game
-      </button>
-    </div>
-  );
-};
-
 const getPlayerName = (player: GamePlayer) => {
   const user = trpc.useQuery(["user.get", { id: player.userId! }]);
 
@@ -170,7 +142,6 @@ const HomeContents = () => {
     <>
       <div>Hej {data.user?.name}!</div>
       <button onClick={() => signOut()}>Logga ut</button>
-      <CreateGame />
 
       <GameList />
     </>

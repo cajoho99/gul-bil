@@ -3,8 +3,67 @@ import { withTRPC } from "@trpc/next";
 import type { AppRouter } from "../server/router";
 import type { AppType } from "next/dist/shared/lib/utils";
 import superjson from "superjson";
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider, signIn, signOut, useSession } from "next-auth/react";
 import "../styles/globals.css";
+import Image from "next/image";
+import Link from "next/link";
+
+const AuthComponent = () => {
+  const { data } = useSession();
+
+  if (!data) {
+    return (
+      <button onClick={() => signIn()} className="p-4 text-white text-md">
+        Logga in
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-row p-4">
+      <Image
+        src={data.user!.image!}
+        alt=""
+        width={64}
+        height={64}
+        className="w-64 h-64 rounded-full"
+      />
+      <button onClick={() => signOut()} className="p-4 text-white text-md">
+        Logga ut
+      </button>
+    </div>
+  );
+};
+
+const Navbar = () => {
+  return (
+    <nav className="w-screen flex justify-between h-24 bg-neutral-900 items-center">
+      <div className="flex flex-row items-center h-fit p-5 gap-5">
+        <Link href="/">
+          <Image
+            src="/yellow-car-logo.svg"
+            height={64}
+            width={64}
+            alt=""
+            className="hover:cursor-pointer p-5"
+          />
+        </Link>
+
+        <Link href="/">
+          <div className="text-white text-xl hover:cursor-pointer">Score</div>
+        </Link>
+
+        <Link href="create">
+          <div className="text-white text-xl hover:cursor-pointer">
+            New Game
+          </div>
+        </Link>
+        <div className="text-white p-4 "></div>
+      </div>
+      <AuthComponent />
+    </nav>
+  );
+};
 
 const MyApp: AppType = ({
   Component,
@@ -12,6 +71,7 @@ const MyApp: AppType = ({
 }) => {
   return (
     <SessionProvider session={session}>
+      <Navbar />
       <Component {...pageProps} />
     </SessionProvider>
   );
