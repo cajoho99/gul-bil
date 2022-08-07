@@ -1,9 +1,15 @@
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { trpc } from "../utils/trpc";
 
 const CreateGame = () => {
   const [email, setEmail] = useState("");
   const createGameMutation = trpc.useMutation(["game.create"]);
+  const { data } = useSession();
+
+  if (!data) {
+    return <div>You need to be logged in!</div>;
+  }
 
   return (
     <div className="flex flex-col items-center justify-center p-10">
